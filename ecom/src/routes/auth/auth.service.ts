@@ -57,10 +57,9 @@ export class AuthService {
     type: TypeOfVerificationCodeType
   }) {
     const verificationCode = await this.authRepository.findUniqueVerificationCode({
-      email_code_type: {
+      email_type: {
         email,
         type,
-        code,
       },
     })
     if (!verificationCode) {
@@ -93,10 +92,9 @@ export class AuthService {
           roleId: clientRoleId,
         }),
         this.authRepository.deleteVerificationCode({
-          email_code_type: {
+          email_type: {
             email: body.email,
             type: TypeOfVerificationCode.REGISTER,
-            code: body.code,
           },
         }),
       ])
@@ -318,10 +316,9 @@ export class AuthService {
     await Promise.all([
       this.authRepository.updateUser({ id: user.id }, { password: hashedPassword }),
       this.authRepository.deleteVerificationCode({
-        email_code_type: {
+        email_type: {
           email,
           type: TypeOfVerificationCode.FORGOT_PASSWORD,
-          code,
         },
       }),
     ])
