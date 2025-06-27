@@ -36,7 +36,11 @@ export class AuthRepository {
   ): Promise<VerificationCodeType> {
     return this.prismaService.verificationCode.upsert({
       where: {
-        email: payload.email,
+        email_code_type: {
+          email: payload.email,
+          code: payload.code,
+          type: payload.type,
+        },
       },
       create: payload,
       update: {
@@ -48,14 +52,9 @@ export class AuthRepository {
 
   findUniqueVerificationCode(
     uniqueValue:
-      | {
-          email: string
-        }
       | { id: number }
       | {
-          email: string
-          type: TypeOfVerificationCodeType
-          code: string
+          email_code_type: { email: string; type: TypeOfVerificationCodeType; code: string }
         },
   ): Promise<VerificationCodeType | null> {
     return this.prismaService.verificationCode.findUnique({
@@ -129,14 +128,9 @@ export class AuthRepository {
 
   deleteVerificationCode(
     uniqueValue:
-      | {
-          email: string
-        }
       | { id: number }
       | {
-          email: string
-          type: TypeOfVerificationCodeType
-          code: string
+          email_code_type: { email: string; type: TypeOfVerificationCodeType; code: string }
         },
   ): Promise<VerificationCodeType> {
     return this.prismaService.verificationCode.delete({
