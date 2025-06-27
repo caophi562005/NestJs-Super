@@ -58,6 +58,21 @@ export const LoginBodySchema = UserSchema.pick({
     code: z.string().length(6).optional(), // Email OTP Code
   })
   .strict()
+  .superRefine(({ totpCode, code }, ctx) => {
+    const message = 'Bạn chỉ cung cấp mã xác thưc 2FA hoặc OTP. Không được cung cấp cả hai'
+    if (totpCode !== undefined && code !== undefined) {
+      ctx.addIssue({
+        path: ['totpCode'],
+        code: 'custom',
+        message,
+      })
+      ctx.addIssue({
+        path: ['code'],
+        code: 'custom',
+        message,
+      })
+    }
+  })
 
 export const LoginResSchema = z.object({
   accessToken: z.string(),
@@ -152,7 +167,7 @@ export const DisableTwoFactorBodySchema = z
 
 export const TwoFactorSetupResSchema = z.object({
   secret: z.string(),
-  url: z.string(),
+  uri: z.string(),
 })
 
 export type RegisterBodyType = z.infer<typeof RegisterBodySchema>
