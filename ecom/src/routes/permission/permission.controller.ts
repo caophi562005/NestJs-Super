@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common'
-import { PermissionService } from './permission.service'
+
 import { ZodSerializerDto } from 'nestjs-zod'
 import {
   CreatePermissionBodyDTO,
@@ -11,6 +11,7 @@ import {
 } from './permission.dto'
 import { ActiveUser } from 'src/shared/decorators/active-user.decorator'
 import { MessageResDTO } from 'src/shared/dtos/response.dto'
+import { PermissionService } from './permission.service'
 
 @Controller('permissions')
 export class PermissionController {
