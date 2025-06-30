@@ -1,4 +1,4 @@
-import { UnauthorizedException } from '@nestjs/common'
+import { ForbiddenException, UnauthorizedException } from '@nestjs/common'
 
 export const RoleAlreadyExistsException = new UnauthorizedException([
   {
@@ -10,3 +10,5 @@ export const RoleAlreadyExistsException = new UnauthorizedException([
     path: 'method',
   },
 ])
+
+export const ProhibitedActionOnBaseRoleException = new ForbiddenException('Error.ProhibitedActionOnBaseRole')

@@ -14,11 +14,11 @@ export class PermissionService {
   }
 
   async findById(id: number) {
-    const Permission = await this.permissionRepository.findById(id)
-    if (!Permission) {
+    const permission = await this.permissionRepository.findById(id)
+    if (!permission) {
       throw NotFoundRecordException
     }
-    return Permission
+    return permission
   }
 
   async create({ data, createdById }: { data: CreatePermissionBodyType; createdById: number }) {

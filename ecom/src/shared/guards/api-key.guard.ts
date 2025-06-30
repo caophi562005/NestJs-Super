@@ -1,5 +1,4 @@
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common'
-import { REQUEST_USER_KEY } from '../constants/auth.constant'
 import envConfig from '../config'
 
 @Injectable()
