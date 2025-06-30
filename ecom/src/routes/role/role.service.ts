@@ -18,6 +18,7 @@ export class RoleService {
     if (!role) {
       throw NotFoundRecordException
     }
+    return role
   }
 
   async create({ data, createdById }: { data: CreateRoleBodyType; createdById: number }) {

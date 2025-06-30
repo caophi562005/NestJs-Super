@@ -4,9 +4,9 @@ import {
   CreatePermissionBodyType,
   GetPermissionQueryType,
   GetPermissionResType,
-  PermissionType,
   UpdatePermissionBodyType,
 } from './permission.model'
+import { PermissionType } from 'src/shared/models/shared-permission.model'
 
 @Injectable()
 export class PermissionRepository {
