@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common'
+import { Injectable } from '@nestjs/common'
 import { RoleRepository } from './role.repo'
 import { CreateRoleBodyType, GetRolesQueryType, UpdateRoleBodyType } from './role.model'
 import { NotFoundRecordException } from 'src/shared/error'

@@ -5,10 +5,9 @@ import {
   CreateRoleResType,
   GetRolesQueryType,
   GetRolesResType,
-  RoleType,
-  RoleWithPermissionType,
   UpdateRoleBodyType,
 } from './role.model'
+import { RoleType, RoleWithPermissionType } from 'src/shared/models/shared-role.model'
 
 @Injectable()
 export class RoleRepository {

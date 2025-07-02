@@ -1,7 +1,6 @@
 import { ConflictException, HttpException, Injectable } from '@nestjs/common'
 import { HashingService } from 'src/shared/services/hashing.service'
 import { generateOTP, isNotFoundPrismaError, isUniqueConstraintPrismaError } from 'src/shared/helpers'
-import { RolesService } from './roles.service'
 import {
   DisableTwoFactorBodyType,
   ForgotPasswordBodyType,
@@ -34,12 +33,13 @@ import {
 } from './auth.error'
 import { TwoFactorService } from 'src/shared/services/2fa.service'
 import { InvalidPasswordException } from 'src/shared/error'
+import { SharedRoleRepository } from 'src/shared/repositories/shared-role.repo'
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly hashingService: HashingService,
-    private readonly rolesService: RolesService,
+    private readonly sharedRoleRepository: SharedRoleRepository,
     private readonly authRepository: AuthRepository,
     private readonly sharedUserRepository: SharedUserRepository,
     private readonly emailService: EmailService,
@@ -47,15 +47,7 @@ export class AuthService {
     private readonly twoFactorService: TwoFactorService,
   ) {}
 
-  async validateVerificationCode({
-    email,
-    code,
-    type,
-  }: {
-    email: string
-    code: string
-    type: TypeOfVerificationCodeType
-  }) {
+  async validateVerificationCode({ email, type }: { email: string; type: TypeOfVerificationCodeType }) {
     const verificationCode = await this.authRepository.findUniqueVerificationCode({
       email_type: {
         email,
@@ -76,11 +68,10 @@ export class AuthService {
     try {
       await this.validateVerificationCode({
         email: body.email,
-        code: body.code,
         type: TypeOfVerificationCode.REGISTER,
       })
 
-      const clientRoleId = await this.rolesService.getClientRoleId()
+      const clientRoleId = await this.sharedRoleRepository.getClientRoleId()
       const hashedPassword = await this.hashingService.hash(body.password)
 
       const [user] = await Promise.all([
@@ -181,7 +172,7 @@ export class AuthService {
         //Kiểm tra OTP có hợp lệ không
         await this.validateVerificationCode({
           email: user.email,
-          code: body.code,
+
           type: TypeOfVerificationCode.LOGIN,
         })
       }
@@ -308,7 +299,7 @@ export class AuthService {
     //Kiểm tra OTP có hợp lệ không
     await this.validateVerificationCode({
       email,
-      code,
+
       type: TypeOfVerificationCode.FORGOT_PASSWORD,
     })
 
@@ -382,7 +373,6 @@ export class AuthService {
       //Kt mã OTP có hợp lệ ?
       await this.validateVerificationCode({
         email: user.email,
-        code,
         type: TypeOfVerificationCode.DISABLE_2FA,
       })
     }
