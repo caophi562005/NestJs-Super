@@ -5,6 +5,7 @@ import { GetUserProfileResDTO, UpdateProfileResDTO } from 'src/shared/dtos/share
 import { ActiveUser } from 'src/shared/decorators/active-user.decorator'
 import { ChangePasswordBodyDTO, UpdateMeBodyDTO } from './profile.dto'
 import { MessageResDTO } from 'src/shared/dtos/response.dto'
+import { IsPublic } from 'src/shared/decorators/auth.decorator'
 
 @Controller('profile')
 export class ProfileController {

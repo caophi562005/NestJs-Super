@@ -19,3 +19,5 @@ export const RoleNotFoundException = new UnauthorizedException([
     path: 'roleId',
   },
 ])
+
+export const CannotUpdateOrDeleteYourselfException = new ForbiddenException('Error.CannotUpdateOrDeleteYourself')

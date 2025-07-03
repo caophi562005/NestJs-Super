@@ -140,7 +140,6 @@ export class AuthService {
     //Lấy thông tin user , kt có tồn tại hay không
     const user = await this.authRepository.findUniqueUserIncludeRole({
       email: body.email,
-      deletedAt: null,
     })
     if (!user) {
       throw EmailNotFoundException
@@ -291,7 +290,7 @@ export class AuthService {
     const { email, code, newPassword } = body
 
     //Kiểm tra email có trong DB chưa
-    const user = await this.sharedUserRepository.findUnique({ email, deletedAt: null })
+    const user = await this.sharedUserRepository.findUnique({ email })
     if (!user) {
       throw EmailNotFoundException
     }
@@ -306,10 +305,7 @@ export class AuthService {
     //Cập nhập mật khẩu mới và xoá OTP
     const hashedPassword = await this.hashingService.hash(newPassword)
     await Promise.all([
-      this.sharedUserRepository.update(
-        { id: user.id, deletedAt: null },
-        { password: hashedPassword, updatedById: user.id },
-      ),
+      this.sharedUserRepository.update({ id: user.id }, { password: hashedPassword, updatedById: user.id }),
       this.authRepository.deleteVerificationCode({
         email_type: {
           email,
@@ -325,7 +321,7 @@ export class AuthService {
 
   async setupTwoFactorAuth(userId: number) {
     //Lấy thông tin user, kiểm tra user có tồn tại và bật 2FA chưa
-    const user = await this.sharedUserRepository.findUnique({ id: userId, deletedAt: null })
+    const user = await this.sharedUserRepository.findUnique({ id: userId })
     if (!user) {
       throw EmailNotFoundException
     }
@@ -338,7 +334,7 @@ export class AuthService {
     const { secret, uri } = this.twoFactorService.generateTOTPSecret(user.email)
 
     //Cập nhập secret vào user trong DB
-    await this.sharedUserRepository.update({ id: userId, deletedAt: null }, { totpSecret: secret, updatedById: userId })
+    await this.sharedUserRepository.update({ id: userId }, { totpSecret: secret, updatedById: userId })
 
     //Trả về secret và uri
     return {
@@ -351,7 +347,7 @@ export class AuthService {
     const { userId, totpCode, code } = data
 
     // Lấy thông tin user , kiểm tra đã bật 2FA chưa
-    const user = await this.sharedUserRepository.findUnique({ id: userId, deletedAt: null })
+    const user = await this.sharedUserRepository.findUnique({ id: userId })
     if (!user) {
       throw EmailNotFoundException
     }
@@ -378,7 +374,7 @@ export class AuthService {
     }
 
     //Xoá secret trong DB
-    await this.sharedUserRepository.update({ id: userId, deletedAt: null }, { totpSecret: null, updatedById: userId })
+    await this.sharedUserRepository.update({ id: userId }, { totpSecret: null, updatedById: userId })
 
     return {
       message: 'Đã tắt xác thực 2FA thành công',

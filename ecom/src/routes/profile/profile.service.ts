@@ -15,7 +15,6 @@ export class ProfileService {
   async getProfile(userId: number) {
     const user = await this.sharedUserRepository.findUniqueIncludeRolePermission({
       id: userId,
-      deletedAt: null,
     })
 
     if (!user) {
@@ -28,7 +27,7 @@ export class ProfileService {
   async updateProfile({ userId, body }: { userId: number; body: UpdateMeBodyType }) {
     try {
       return await this.sharedUserRepository.update(
-        { id: userId, deletedAt: null },
+        { id: userId },
         {
           ...body,
           updatedById: userId,
@@ -45,7 +44,7 @@ export class ProfileService {
   async changePassword({ userId, body }: { userId: number; body: ChangePasswordBodyType }) {
     try {
       const { password, newPassword } = body
-      const user = await this.sharedUserRepository.findUnique({ id: userId, deletedAt: null })
+      const user = await this.sharedUserRepository.findUnique({ id: userId })
       if (!user) {
         throw NotFoundRecordException
       }
@@ -55,10 +54,7 @@ export class ProfileService {
       }
 
       const hashedPassword = await this.hashingService.hash(newPassword)
-      await this.sharedUserRepository.update(
-        { id: userId, deletedAt: null },
-        { password: hashedPassword, updatedById: userId },
-      )
+      await this.sharedUserRepository.update({ id: userId }, { password: hashedPassword, updatedById: userId })
       return {
         message: 'Password change successfully',
       }
