@@ -6,7 +6,6 @@ import {
   MaxFileSizeValidator,
   NotFoundException,
   Param,
-  ParseFilePipe,
   Post,
   Res,
   UploadedFiles,
@@ -35,7 +34,8 @@ export class MediaController {
         validators: [
           new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }), // Giới hạn kích thước 5MB
           new FileTypeValidator({
-            fileType: /^image\/(jpeg|png|gif)$/i, // Hỗ trợ JPEG, PNG, GIF
+            fileType: /^image\/(png|jpeg|jpg|gif|webp)$/,
+            skipMagicNumbersValidation: true,
           }),
         ],
       }),
