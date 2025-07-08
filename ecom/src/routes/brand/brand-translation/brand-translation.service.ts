@@ -15,7 +15,7 @@ export class BrandTranslationService {
     if (!brand) {
       throw NotFoundRecordException
     }
-    throw error
+    return brand
   }
 
   create({ createdById, data }: { createdById: number; data: CreateBrandTranslationBodyType }) {

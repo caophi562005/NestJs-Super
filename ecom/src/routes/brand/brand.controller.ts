@@ -13,7 +13,7 @@ import { PaginationQueryDTO } from 'src/shared/dtos/request.dto'
 import { ActiveUser } from 'src/shared/decorators/active-user.decorator'
 import { MessageResDTO } from 'src/shared/dtos/response.dto'
 
-@Controller('brand')
+@Controller('brands')
 export class BrandController {
   constructor(private readonly brandService: BrandService) {}
 

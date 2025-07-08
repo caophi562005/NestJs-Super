@@ -10,7 +10,7 @@ import {
 import { ActiveUser } from 'src/shared/decorators/active-user.decorator'
 import { MessageResDTO } from 'src/shared/dtos/response.dto'
 
-@Controller('brand-translation')
+@Controller('brand-translations')
 export class BrandTranslationController {
   constructor(private readonly brandTranslationService: BrandTranslationService) {}
 
