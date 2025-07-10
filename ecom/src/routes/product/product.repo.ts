@@ -6,6 +6,7 @@ import {
   GetProductsQueryType,
   GetProductsResType,
   ProductType,
+  UpdateProductBodyType,
 } from './product.model'
 import { ALL_LANGUAGE_CODE } from 'src/shared/constants/other.constant'
 
@@ -140,6 +141,108 @@ export class ProductRepository {
         },
       },
     })
+  }
+
+  async update({
+    id,
+    updatedById,
+    data,
+  }: {
+    id: number
+    updatedById: number
+    data: UpdateProductBodyType
+  }): Promise<ProductType> {
+    const { skus: dataSkus, categories, ...productData } = data
+    //SKU tồn tại trong DB nhưng không có trong data payload thì sẽ bị xoá
+
+    //Lấy danh sách SKU hiện tại trong DB
+    const existingSkus = await this.prismaService.sKU.findMany({
+      where: {
+        productId: id,
+        deletedAt: null,
+      },
+    })
+
+    //Tìm các SKU cần xoá ( tồn tại trong DB nhưng không có trong data payload)
+    const skusToDelete = existingSkus.filter((sku) => dataSkus.every((dataSku) => dataSku.value !== sku.value))
+    const skuIdsToDelete = skusToDelete.map((sku) => sku.id)
+
+    // Đưa các ID của sku tồn tại trong DB vào data payload
+    const skuWithId = dataSkus.map((dataSku) => {
+      const existingSku = existingSkus.find((eSkus) => eSkus.value === dataSku.value)
+      return {
+        ...dataSku,
+        id: existingSku ? existingSku.id : null,
+      }
+    })
+
+    // Tìm các Sku để cập nhập
+    const skusToUpdate = skuWithId.filter((dataSku) => dataSku.id !== null)
+
+    // Tìm các Sku cần thêm mới
+    const skusToCreate = skuWithId
+      .filter((dataSku) => dataSku.id === null)
+      .map((sku) => {
+        const { id: skuId, ...data } = sku
+        return {
+          ...data,
+          productId: id,
+          createdById: updatedById,
+        }
+      })
+
+    const [product] = await this.prismaService.$transaction([
+      // Cập nhập product
+      this.prismaService.product.update({
+        where: {
+          id,
+          deletedAt: null,
+        },
+        data: {
+          ...productData,
+          updatedById,
+          categories: {
+            connect: categories.map((category) => ({ id: category })),
+          },
+        },
+      }),
+
+      // Xoá mềm các SKU không có trong data payload
+      this.prismaService.sKU.updateMany({
+        where: {
+          id: {
+            in: skuIdsToDelete,
+          },
+        },
+        data: {
+          deletedById: updatedById,
+          deletedAt: new Date(),
+        },
+      }),
+
+      // Cập nhập các SKU
+      ...skusToUpdate.map((sku) => {
+        return this.prismaService.sKU.update({
+          where: {
+            id: sku.id as number,
+          },
+          data: {
+            value: sku.value,
+            price: sku.price,
+            stock: sku.stock,
+            image: sku.image,
+            updatedById,
+          },
+        })
+      }),
+
+      // Thêm mới SKU
+      this.prismaService.sKU.createMany({
+        data: skusToCreate,
+      }),
+    ])
+
+    return product
   }
 
   async delete({ id, deletedById }: { id: number; deletedById: number }, isHard?: boolean): Promise<ProductType> {

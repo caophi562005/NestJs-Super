@@ -23,16 +23,16 @@ function generateSKUs(variants: any[]): any[] {
 }
 
 export const VariantSchema = z.object({
-  value: z.string(),
-  options: z.array(z.string()),
+  value: z.string().trim(),
+  options: z.array(z.string().trim()),
 })
 
 export const VariantsSchema = z.array(VariantSchema).superRefine((variants, ctx) => {
   //Kiểm tra variants và variant option có bị trùng không
   for (let i = 0; i < variants.length; i++) {
     const variant = variants[i]
-    const isDifferent = variants.findIndex((v) => v.value === variant.value) !== i
-    if (!isDifferent) {
+    const isExistingVariant = variants.findIndex((v) => v.value.toLowerCase() === variant.value.toLowerCase()) !== i
+    if (isExistingVariant) {
       return ctx.addIssue({
         code: 'custom',
         message: `Giá trị ${variant.value} đã tồn tại trong danh sách variants`,
@@ -40,8 +40,11 @@ export const VariantsSchema = z.array(VariantSchema).superRefine((variants, ctx)
       })
     }
 
-    const isDifferentOption = variant.options.findIndex((o) => variant.options.includes(o)) !== -1
-    if (!isDifferentOption) {
+    const isDifferentOption = variant.options.some((option, index) => {
+      const isExistingOption = variant.options.findIndex((o) => o.toLowerCase() === option.toLowerCase()) !== index
+      return isExistingOption
+    })
+    if (isDifferentOption) {
       return ctx.addIssue({
         code: 'custom',
         message: `Variant ${variant.value} chứa các option trùng`,
@@ -54,9 +57,9 @@ export const VariantsSchema = z.array(VariantSchema).superRefine((variants, ctx)
 export const ProductSchema = z.object({
   id: z.number(),
   publishedAt: z.coerce.date().nullable(),
-  name: z.string().max(500),
-  basePrice: z.number().positive(),
-  virtualPrice: z.number().positive(),
+  name: z.string().trim().max(500),
+  basePrice: z.number().min(0),
+  virtualPrice: z.number().min(0),
   brandId: z.number().positive(),
   images: z.array(z.string()),
   variants: VariantsSchema,
@@ -71,8 +74,8 @@ export const ProductSchema = z.object({
 
 export const GetProductsQuerySchema = PaginationQuerySchema.extend({
   name: z.string().optional(),
-  brandIds: z.array(z.coerce.number().int().positive().optional()),
-  categories: z.array(z.coerce.number().int().positive().optional()),
+  brandIds: z.array(z.coerce.number().int().positive()).optional(),
+  categories: z.array(z.coerce.number().int().positive()).optional(),
   minPrice: z.coerce.number().int().positive().optional(),
   maxPrice: z.coerce.number().int().positive().optional(),
 })
