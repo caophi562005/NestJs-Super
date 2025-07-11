@@ -5,6 +5,9 @@ import { PrismaService } from 'src/shared/services/prisma.service'
 
 const prisma = new PrismaService()
 
+const SellerModule = ['AUTH', 'MEDIA', 'MANAGE-PRODUCT', 'PRODUCT-TRANSLATIONS', 'PROFILE', 'CART']
+const ClientModule = ['AUTH', 'MEDIA', 'PROFILE', 'CART']
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule)
   await app.listen(3001)
@@ -86,25 +89,43 @@ async function bootstrap() {
     },
   })
 
+  const adminPermissionIds = updatedPermissionInDb.map((item) => ({ id: item.id }))
+
+  const sellerPermissionIds = updatedPermissionInDb
+    .filter((item) => SellerModule.includes(item.module))
+    .map((item) => ({ id: item.id }))
+
+  const clientPermissionIds = updatedPermissionInDb
+    .filter((item) => ClientModule.includes(item.module))
+    .map((item) => ({ id: item.id }))
+
+  await Promise.all([
+    updateRole(adminPermissionIds, RoleName.Admin),
+    updateRole(sellerPermissionIds, RoleName.Seller),
+    updateRole(clientPermissionIds, RoleName.Client),
+  ])
+
+  //Thoát ra
+  process.exit(0)
+}
+
+const updateRole = async (permissionIds: { id: number }[], roleName: string) => {
   //Cập nhập permission trong ADMIN role
-  const adminRole = await prisma.role.findFirstOrThrow({
+  const role = await prisma.role.findFirstOrThrow({
     where: {
-      name: RoleName.Admin,
+      name: roleName,
       deletedAt: null,
     },
   })
   await prisma.role.update({
     where: {
-      id: adminRole.id,
+      id: role.id,
     },
     data: {
       permissions: {
-        set: updatedPermissionInDb.map((item) => ({ id: item.id })),
+        set: permissionIds,
       },
     },
   })
-
-  //Thoát ra
-  process.exit(0)
 }
 bootstrap()

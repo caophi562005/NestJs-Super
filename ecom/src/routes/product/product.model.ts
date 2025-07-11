@@ -1,9 +1,12 @@
 import { PaginationQuerySchema } from 'src/shared/models/request.model'
 import { z } from 'zod'
-import { SKUSchema, UpsertSKUBodySchema } from './sku.model'
-import { ProductTranslationSchema } from './product-translation/product-translation.model'
+import { UpsertSKUBodySchema } from './sku.model'
 import { CategoryIncludeTranslationSchema } from 'src/shared/models/shared-category.model'
 import { BrandIncludeTranslationSchema } from 'src/shared/models/shared-brand.model'
+import { OrderBy, SortBy } from 'src/shared/constants/other.constant'
+import { ProductSchema } from 'src/shared/models/shared-product.model'
+import { SKUSchema } from 'src/shared/models/shared-sku.model'
+import { ProductTranslationSchema } from 'src/shared/models/shared-product-translation.model'
 
 function generateSKUs(variants: any[]): any[] {
   function getCombinations(arrays: string[][]): string[] {
@@ -22,62 +25,39 @@ function generateSKUs(variants: any[]): any[] {
   }))
 }
 
-export const VariantSchema = z.object({
-  value: z.string().trim(),
-  options: z.array(z.string().trim()),
-})
-
-export const VariantsSchema = z.array(VariantSchema).superRefine((variants, ctx) => {
-  //Kiểm tra variants và variant option có bị trùng không
-  for (let i = 0; i < variants.length; i++) {
-    const variant = variants[i]
-    const isExistingVariant = variants.findIndex((v) => v.value.toLowerCase() === variant.value.toLowerCase()) !== i
-    if (isExistingVariant) {
-      return ctx.addIssue({
-        code: 'custom',
-        message: `Giá trị ${variant.value} đã tồn tại trong danh sách variants`,
-        path: ['variants'],
-      })
-    }
-
-    const isDifferentOption = variant.options.some((option, index) => {
-      const isExistingOption = variant.options.findIndex((o) => o.toLowerCase() === option.toLowerCase()) !== index
-      return isExistingOption
-    })
-    if (isDifferentOption) {
-      return ctx.addIssue({
-        code: 'custom',
-        message: `Variant ${variant.value} chứa các option trùng`,
-        path: ['variants'],
-      })
-    }
-  }
-})
-
-export const ProductSchema = z.object({
-  id: z.number(),
-  publishedAt: z.coerce.date().nullable(),
-  name: z.string().trim().max(500),
-  basePrice: z.number().min(0),
-  virtualPrice: z.number().min(0),
-  brandId: z.number().positive(),
-  images: z.array(z.string()),
-  variants: VariantsSchema,
-
-  createdById: z.number().nullable(),
-  updatedById: z.number().nullable(),
-  deletedById: z.number().nullable(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
-  deletedAt: z.date().nullable(),
-})
-
+//Dành cho client và guest
 export const GetProductsQuerySchema = PaginationQuerySchema.extend({
   name: z.string().optional(),
-  brandIds: z.array(z.coerce.number().int().positive()).optional(),
-  categories: z.array(z.coerce.number().int().positive()).optional(),
+
+  brandIds: z
+    .preprocess((value) => {
+      if (typeof value === 'string') {
+        return [Number(value)]
+      }
+      return value
+    }, z.array(z.coerce.number().int().positive()))
+    .optional(),
+
+  categories: z
+    .preprocess((value) => {
+      if (typeof value === 'string') {
+        return [Number(value)]
+      }
+      return value
+    }, z.array(z.coerce.number().int().positive()))
+    .optional(),
+
   minPrice: z.coerce.number().int().positive().optional(),
   maxPrice: z.coerce.number().int().positive().optional(),
+  createdById: z.coerce.number().int().positive().optional(),
+  orderBy: z.enum([OrderBy.Asc, OrderBy.Desc]).default(OrderBy.Desc),
+  sortBy: z.enum([SortBy.CreatedAt, SortBy.Price, SortBy.Sale]).default(SortBy.CreatedAt),
+})
+
+//Dành cho admin và seller
+export const GetManageProductsQuerySchema = GetProductsQuerySchema.extend({
+  isPublic: z.preprocess((value) => value === 'true', z.boolean()).optional(),
+  createdById: z.coerce.number().int().positive(),
 })
 
 export const GetProductsResSchema = z.object({
@@ -150,12 +130,10 @@ export const CreateProductBodySchema = ProductSchema.pick({
 
 export const updateProductBodySchema = CreateProductBodySchema
 
-export type ProductType = z.infer<typeof ProductSchema>
 export type GetProductsQueryType = z.infer<typeof GetProductsQuerySchema>
+export type GetManageProductsQueryType = z.infer<typeof GetManageProductsQuerySchema>
 export type GetProductsResType = z.infer<typeof GetProductsResSchema>
 export type GetProductsParamsType = z.infer<typeof GetProductsParamsSchema>
 export type GetProductDetailResType = z.infer<typeof GetProductDetailResSchema>
 export type CreateProductBodyType = z.infer<typeof CreateProductBodySchema>
 export type UpdateProductBodyType = z.infer<typeof updateProductBodySchema>
-export type VariantType = z.infer<typeof VariantSchema>
-export type VariantsType = z.infer<typeof VariantsSchema>

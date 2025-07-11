@@ -1,17 +1,8 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common'
+import { Controller, Get, Param, Query } from '@nestjs/common'
 import { ProductService } from './product.service'
 import { IsPublic } from 'src/shared/decorators/auth.decorator'
 import { ZodSerializerDto } from 'nestjs-zod'
-import {
-  CreateProductBodyDTO,
-  GetProductDetailResDTO,
-  GetProductsParamsDTO,
-  GetProductsQueryDTO,
-  GetProductsResDTO,
-  UpdateProductBodyDTO,
-} from './product.dto'
-import { ActiveUser } from 'src/shared/decorators/active-user.decorator'
-import { MessageResDTO } from 'src/shared/dtos/response.dto'
+import { GetProductDetailResDTO, GetProductsParamsDTO, GetProductsQueryDTO, GetProductsResDTO } from './product.dto'
 
 @Controller('products')
 export class ProductController {
@@ -28,38 +19,6 @@ export class ProductController {
   @IsPublic()
   @ZodSerializerDto(GetProductDetailResDTO)
   findById(@Param() params: GetProductsParamsDTO) {
-    return this.productService.findById(params.productId)
-  }
-
-  @Post()
-  @ZodSerializerDto(GetProductDetailResDTO)
-  create(@Body() body: CreateProductBodyDTO, @ActiveUser('userId') userId: number) {
-    return this.productService.create({
-      data: body,
-      createdById: userId,
-    })
-  }
-
-  @Put(':productId')
-  @ZodSerializerDto(GetProductDetailResDTO)
-  update(
-    @Body() body: UpdateProductBodyDTO,
-    @Param() params: GetProductsParamsDTO,
-    @ActiveUser('userId') userId: number,
-  ) {
-    return this.productService.update({
-      id: params.productId,
-      data: body,
-      updatedById: userId,
-    })
-  }
-
-  @Delete(':productId')
-  @ZodSerializerDto(MessageResDTO)
-  delete(@Param() params: GetProductsParamsDTO, @ActiveUser('userId') userId: number) {
-    return this.productService.delete({
-      id: params.productId,
-      deletedById: userId,
-    })
+    return this.productService.getDetail(params.productId)
   }
 }
