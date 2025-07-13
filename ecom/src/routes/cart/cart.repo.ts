@@ -4,6 +4,7 @@ import { PrismaService } from 'src/shared/services/prisma.service'
 import { NotFoundSKUException, OutOfStockSKUException, ProductNotFoundException } from './cart.error'
 import {
   AddToCartBodyType,
+  CartItemDetailResType,
   CartItemType,
   DeleteCartBodyType,
   GetCartResType,
@@ -51,7 +52,7 @@ export class CartRepository {
     return sku
   }
 
-  async findAll({
+  async list({
     pagination,
     userId,
     languageId,
@@ -60,45 +61,62 @@ export class CartRepository {
     userId: number
     languageId: string
   }): Promise<GetCartResType> {
-    const skip = (pagination.page - 1) * pagination.limit
-    const take = pagination.limit
-    const [totalItems, data] = await Promise.all([
-      this.prismaService.cartItem.count({
-        where: {
-          userId,
+    const cartItems = await this.prismaService.cartItem.findMany({
+      where: {
+        userId,
+        sku: {
+          product: {
+            deletedAt: null,
+            publishedAt: {
+              lte: new Date(),
+              not: null,
+            },
+          },
         },
-      }),
-      this.prismaService.cartItem.findMany({
-        where: {
-          userId,
-        },
-        include: {
-          sku: {
-            include: {
-              product: {
-                include: {
-                  productTranslations: {
-                    where: languageId === ALL_LANGUAGE_CODE ? { deletedAt: null } : { languageId, deletedAt: null },
-                  },
+      },
+      include: {
+        sku: {
+          include: {
+            product: {
+              include: {
+                productTranslations: {
+                  where: languageId === ALL_LANGUAGE_CODE ? { deletedAt: null } : { languageId, deletedAt: null },
                 },
+                createdBy: true,
               },
             },
           },
         },
-        skip,
-        take,
-        orderBy: {
-          createdAt: 'desc',
-        },
-      }),
-    ])
+      },
+      orderBy: {
+        updatedAt: 'desc',
+      },
+    })
+
+    const groupMap = new Map<number, CartItemDetailResType>()
+    for (const cartItem of cartItems) {
+      const shopId = cartItem.sku.product.createdById
+      if (shopId) {
+        if (!groupMap.has(shopId)) {
+          groupMap.set(shopId, { shop: cartItem.sku.product.createdBy, cartItems: [] })
+        }
+        groupMap.get(shopId)?.cartItems.push(cartItem)
+      }
+    }
+    const sortedGroups = Array.from(groupMap.values())
+
+    const skip = (pagination.page - 1) * pagination.limit
+    const take = pagination.limit
+
+    const totalGroups = sortedGroups.length
+    const pageGroups = sortedGroups.slice(skip, skip + take)
 
     return {
-      data,
+      data: pageGroups,
       page: pagination.page,
       limit: pagination.limit,
-      totalItems,
-      totalPages: Math.ceil(totalItems / pagination.limit),
+      totalItems: totalGroups,
+      totalPages: Math.ceil(totalGroups / pagination.limit),
     }
   }
 
