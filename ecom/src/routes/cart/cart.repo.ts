@@ -17,7 +17,7 @@ import { PaginationQueryType } from 'src/shared/models/request.model'
 export class CartRepository {
   constructor(private readonly prismaService: PrismaService) {}
 
-  private async validateSKU(skuId: number): Promise<SKUType> {
+  private async validateSKU(skuId: number, quantity: number): Promise<SKUType> {
     const sku = await this.prismaService.sKU.findUnique({
       where: {
         id: skuId,
@@ -34,7 +34,7 @@ export class CartRepository {
     }
 
     //Kiểm tra hàng tồn
-    if (sku.stock < 1) {
+    if (sku.stock < 1 || sku.stock < quantity) {
       throw OutOfStockSKUException
     }
 
@@ -121,9 +121,20 @@ export class CartRepository {
   }
 
   async create(userId: number, body: AddToCartBodyType): Promise<CartItemType> {
-    await this.validateSKU(body.skuId)
-    return this.prismaService.cartItem.create({
-      data: {
+    await this.validateSKU(body.skuId, body.quantity)
+    return this.prismaService.cartItem.upsert({
+      where: {
+        userId_skuId: {
+          userId,
+          skuId: body.skuId,
+        },
+      },
+      update: {
+        quantity: {
+          increment: body.quantity,
+        },
+      },
+      create: {
         userId,
         ...body,
       },
@@ -131,7 +142,7 @@ export class CartRepository {
   }
 
   async update(cartItemId: number, body: UpdateCartItemBodyType): Promise<CartItemType> {
-    await this.validateSKU(body.skuId)
+    await this.validateSKU(body.skuId, body.quantity)
 
     return this.prismaService.cartItem.update({
       where: {
