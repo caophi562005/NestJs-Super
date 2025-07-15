@@ -1,16 +1,25 @@
 import { Injectable } from '@nestjs/common'
 import { PaginationQueryType } from 'src/shared/models/request.model'
 import { PrismaService } from 'src/shared/services/prisma.service'
-import { CreateOrderBodyType, CreateOrderResType, GetOrderListQueryType, GetOrderListResType } from './order.model'
+import {
+  CancelOrderResType,
+  CreateOrderBodyType,
+  CreateOrderResType,
+  GetOrderDetailResType,
+  GetOrderListQueryType,
+  GetOrderListResType,
+} from './order.model'
 import { Prisma } from '@prisma/client'
 import { OrderStatus, OrderStatusType } from 'src/shared/constants/order.constant'
 import {
+  CannotCancelOrderException,
   NotFoundCartItemException,
+  OrderNotFoundException,
   OutOfStockSKUException,
   ProductNotFoundException,
   SKUNotBelongToShopException,
 } from './order.error'
-import { language } from 'googleapis/build/src/apis/language'
+import { isNotFoundPrismaError } from 'src/shared/helpers'
 
 @Injectable()
 export class OrderRepository {
@@ -172,6 +181,56 @@ export class OrderRepository {
     })
     return {
       data: orders,
+    }
+  }
+
+  async detail({ userId, orderId }: { userId: number; orderId: number }): Promise<GetOrderDetailResType | null> {
+    const order = await this.prismaService.order.findUnique({
+      where: {
+        id: orderId,
+        userId,
+        deletedAt: null,
+      },
+      include: {
+        items: true,
+      },
+    })
+    if (!order) {
+      throw OrderNotFoundException
+    }
+    return order
+  }
+
+  async cancel({ userId, orderId }: { userId: number; orderId: number }): Promise<CancelOrderResType> {
+    try {
+      const order = await this.prismaService.order.findUniqueOrThrow({
+        where: {
+          id: orderId,
+          userId,
+          deletedAt: null,
+        },
+      })
+      if (order.status !== OrderStatus.CANCELLED) {
+        throw CannotCancelOrderException
+      }
+
+      const updatedOrder = await this.prismaService.order.update({
+        where: {
+          id: orderId,
+          userId,
+          deletedAt: null,
+        },
+        data: {
+          status: OrderStatus.CANCELLED,
+          updatedById: userId,
+        },
+      })
+      return updatedOrder
+    } catch (error) {
+      if (isNotFoundPrismaError(error)) {
+        throw OrderNotFoundException
+      }
+      throw error
     }
   }
 }

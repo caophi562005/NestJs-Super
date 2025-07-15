@@ -21,4 +21,18 @@ export class OrderService {
       userId,
     })
   }
+
+  detail({ userId, orderId }: { userId: number; orderId: number }) {
+    return this.orderRepository.detail({
+      orderId,
+      userId,
+    })
+  }
+
+  cancel({ userId, orderId }: { userId: number; orderId: number }) {
+    return this.orderRepository.cancel({
+      orderId,
+      userId,
+    })
+  }
 }
