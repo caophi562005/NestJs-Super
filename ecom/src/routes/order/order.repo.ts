@@ -61,7 +61,10 @@ export class OrderRepository {
     }
   }
 
-  async create({ userId, body }: { userId: number; body: CreateOrderBodyType }): Promise<CreateOrderResType> {
+  async create({ userId, body }: { userId: number; body: CreateOrderBodyType }): Promise<{
+    paymentId: number
+    orders: CreateOrderResType['data']
+  }> {
     // Kiểm tra xem các cartItemIds có tồn tại trong cơ sở dữ liệu
     const allBodyCartItemIds = body.map((item) => item.cartItemIds).flat()
 
@@ -127,7 +130,7 @@ export class OrderRepository {
     }
 
     // Tạo order và xoá cartItem
-    const orders = await this.prismaService.$transaction(async (tx) => {
+    const [paymentId, orders] = await this.prismaService.$transaction(async (tx) => {
       const payment = await tx.payment.create({
         data: {
           status: PaymentStatus.PENDING,
@@ -199,10 +202,11 @@ export class OrderRepository {
         ),
       ])
       const [orders] = await Promise.all([orders$, cartItem$, sku$])
-      return orders
+      return [payment.id, orders]
     })
     return {
-      data: orders,
+      paymentId,
+      orders,
     }
   }
 

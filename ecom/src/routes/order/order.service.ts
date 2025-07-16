@@ -1,12 +1,14 @@
 import { Injectable } from '@nestjs/common'
 import { OrderRepository } from './order.repo'
-import { PaginationQueryType } from 'src/shared/models/request.model'
-import { OrderStatusType } from 'src/shared/constants/order.constant'
 import { CreateOrderBodyType, GetOrderListQueryType } from './order.model'
+import { OrderProducer } from './order.producer'
 
 @Injectable()
 export class OrderService {
-  constructor(private readonly orderRepository: OrderRepository) {}
+  constructor(
+    private readonly orderRepository: OrderRepository,
+    private readonly orderProducer: OrderProducer,
+  ) {}
 
   list({ userId, query }: { userId: number; query: GetOrderListQueryType }) {
     return this.orderRepository.list({
@@ -15,11 +17,15 @@ export class OrderService {
     })
   }
 
-  create({ userId, body }: { userId: number; body: CreateOrderBodyType }) {
-    return this.orderRepository.create({
+  async create({ userId, body }: { userId: number; body: CreateOrderBodyType }) {
+    const result = await this.orderRepository.create({
       body,
       userId,
     })
+    await this.orderProducer.cancelPaymentJob(result.paymentId)
+    return {
+      data: result.orders,
+    }
   }
 
   detail({ userId, orderId }: { userId: number; orderId: number }) {
