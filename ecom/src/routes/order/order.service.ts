@@ -22,10 +22,7 @@ export class OrderService {
       body,
       userId,
     })
-    await this.orderProducer.cancelPaymentJob(result.paymentId)
-    return {
-      data: result.orders,
-    }
+    return result
   }
 
   detail({ userId, orderId }: { userId: number; orderId: number }) {

@@ -12,7 +12,12 @@ export class OrderProducer {
     await this.paymentQueue.add(
       CANCEL_PAYMENT_JOB_NAME,
       { paymentId },
-      { delay: 1000 * 20, jobId: generateCancelPaymentJobId(paymentId), removeOnComplete: true, removeOnFail: true },
+      {
+        delay: 1000 * 60 * 60 * 24,
+        jobId: generateCancelPaymentJobId(paymentId),
+        removeOnComplete: true,
+        removeOnFail: true,
+      },
     )
   }
 }

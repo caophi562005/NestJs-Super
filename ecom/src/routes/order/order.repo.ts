@@ -10,7 +10,7 @@ import {
   GetOrderListResType,
 } from './order.model'
 import { Prisma } from '@prisma/client'
-import { OrderStatus, OrderStatusType } from 'src/shared/constants/order.constant'
+import { OrderStatus } from 'src/shared/constants/order.constant'
 import {
   CannotCancelOrderException,
   NotFoundCartItemException,
@@ -21,10 +21,14 @@ import {
 } from './order.error'
 import { isNotFoundPrismaError } from 'src/shared/helpers'
 import { PaymentStatus } from 'src/shared/constants/payment.constant'
+import { OrderProducer } from './order.producer'
 
 @Injectable()
 export class OrderRepository {
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private readonly orderProducer: OrderProducer,
+  ) {}
 
   async list({ userId, query }: { userId: number; query: GetOrderListQueryType }): Promise<GetOrderListResType> {
     const skip = (query.page - 1) * query.limit
@@ -61,10 +65,7 @@ export class OrderRepository {
     }
   }
 
-  async create({ userId, body }: { userId: number; body: CreateOrderBodyType }): Promise<{
-    paymentId: number
-    orders: CreateOrderResType['data']
-  }> {
+  async create({ userId, body }: { userId: number; body: CreateOrderBodyType }): Promise<CreateOrderResType> {
     // Kiểm tra xem các cartItemIds có tồn tại trong cơ sở dữ liệu
     const allBodyCartItemIds = body.map((item) => item.cartItemIds).flat()
 
@@ -130,7 +131,7 @@ export class OrderRepository {
     }
 
     // Tạo order và xoá cartItem
-    const [paymentId, orders] = await this.prismaService.$transaction(async (tx) => {
+    const [orders] = await this.prismaService.$transaction(async (tx) => {
       const payment = await tx.payment.create({
         data: {
           status: PaymentStatus.PENDING,
@@ -201,12 +202,12 @@ export class OrderRepository {
           }),
         ),
       ])
-      const [orders] = await Promise.all([orders$, cartItem$, sku$])
-      return [payment.id, orders]
+      const addCancelPaymentJob$ = this.orderProducer.cancelPaymentJob(payment.id)
+      const [orders] = await Promise.all([orders$, cartItem$, sku$, addCancelPaymentJob$])
+      return [orders]
     })
     return {
-      paymentId,
-      orders,
+      data: orders,
     }
   }
 
