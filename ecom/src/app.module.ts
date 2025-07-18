@@ -3,7 +3,7 @@ import { AppController } from './app.controller'
 import { AppService } from './app.service'
 import { SharedModule } from './shared/shared.module'
 import { AuthModule } from './routes/auth/auth.module'
-import { APP_FILTER, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core'
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR, APP_PIPE } from '@nestjs/core'
 import CustomZodValidationPipe from './shared/pipes/custom-zod-validation.pipe'
 import { ZodSerializerInterceptor } from 'nestjs-zod'
 import { HttpExceptionFilter } from './shared/filters/http-exception.filter'
@@ -28,6 +28,12 @@ import { BullModule } from '@nestjs/bullmq'
 import { PaymentConsumer } from './queues/payment.consumer'
 import envConfig from './shared/config'
 import { WebsocketModule } from './websockets/websocket.module'
+import { ThrottlerModule } from '@nestjs/throttler'
+import { ThrottlerBehindProxyGuard } from './shared/guards/throttler-behind-proxy.guard'
+import { ReviewModule } from './routes/review/review.module'
+import { ScheduleModule } from '@nestjs/schedule'
+import { RemoveRefreshTokenCornJob } from './cornjobs/remove-refreshtoken-conrnjob'
+import { CacheModule } from '@nestjs/cache-manager'
 
 @Module({
   imports: [
@@ -44,6 +50,18 @@ import { WebsocketModule } from './websockets/websocket.module'
       connection: {
         url: envConfig.REDIS_URL,
       },
+    }),
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          ttl: 60000,
+          limit: 10,
+        },
+      ],
+    }),
+    ScheduleModule.forRoot(),
+    CacheModule.register({
+      isGlobal: true,
     }),
     WebsocketModule,
     SharedModule,
@@ -63,6 +81,7 @@ import { WebsocketModule } from './websockets/websocket.module'
     CartModule,
     OrderModule,
     PaymentModule,
+    ReviewModule,
   ],
   controllers: [AppController],
   providers: [
@@ -79,7 +98,12 @@ import { WebsocketModule } from './websockets/websocket.module'
       provide: APP_FILTER,
       useClass: HttpExceptionFilter,
     },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerBehindProxyGuard,
+    },
     PaymentConsumer,
+    RemoveRefreshTokenCornJob,
   ],
 })
 export class AppModule {}

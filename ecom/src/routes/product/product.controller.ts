@@ -3,7 +3,9 @@ import { ProductService } from './product.service'
 import { IsPublic } from 'src/shared/decorators/auth.decorator'
 import { ZodSerializerDto } from 'nestjs-zod'
 import { GetProductDetailResDTO, GetProductsParamsDTO, GetProductsQueryDTO, GetProductsResDTO } from './product.dto'
+import { SkipThrottle } from '@nestjs/throttler'
 
+@SkipThrottle()
 @Controller('products')
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
@@ -15,6 +17,7 @@ export class ProductController {
     return this.productService.list(query)
   }
 
+  @SkipThrottle({ default: false })
   @Get(':productId')
   @IsPublic()
   @ZodSerializerDto(GetProductDetailResDTO)
