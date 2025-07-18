@@ -4,12 +4,14 @@ import { NestExpressApplication } from '@nestjs/platform-express'
 import { WebsocketAdapter } from './websockets/websocket.adapter'
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger'
 import { patchNestJsSwagger } from 'nestjs-zod'
+import helmet from 'helmet'
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule)
   app.set('trust proxy', 'loopback') // Trust requests from the loopback address
   //Cho phép tất cả origin ( tạm thời )
   app.enableCors()
+  app.use(helmet())
 
   const websocketAdapter = new WebsocketAdapter(app)
   await websocketAdapter.connectToRedis()

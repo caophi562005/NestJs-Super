@@ -34,6 +34,7 @@ import { ReviewModule } from './routes/review/review.module'
 import { ScheduleModule } from '@nestjs/schedule'
 import { RemoveRefreshTokenCornJob } from './cornjobs/remove-refreshtoken-conrnjob'
 import { CacheModule } from '@nestjs/cache-manager'
+import { createKeyv } from '@keyv/redis'
 
 @Module({
   imports: [
@@ -62,6 +63,11 @@ import { CacheModule } from '@nestjs/cache-manager'
     ScheduleModule.forRoot(),
     CacheModule.register({
       isGlobal: true,
+      useFactory: async () => {
+        return {
+          stores: [createKeyv(envConfig.REDIS_URL)],
+        }
+      },
     }),
     WebsocketModule,
     SharedModule,
